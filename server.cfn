@@ -1,0 +1,163 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+
+  "Description": "Example CloudFormation to installl Chef 12 Server using RHEL 6.5 ami in us-east-1. This template creates and starts a Chef 12 Server with the Web Maganagment module (for up to 10 hosts), initializes knife in ec2-user account, and then uploads the aws cookbook to the running Chef 12 Server. Roles are used to create a private s3 bucket and upload a client validation key. A WaitCondition is used to pause the stack creation until the server is completely deployed. **WARNING** This template creates one or more Amazon EC2 instances. You will be billed for the AWS resources used if you create a stack from this template.",
+
+  "Parameters": {
+    "KeyName": {
+      "Description" : "Name of an existing EC2 KeyPair to enable SSH access to the Chef Server",
+      "Type": "String",
+      "MinLength": "1",
+      "MaxLength": "255",
+      "AllowedPattern" : "[\\x20-\\x7E]*",
+      "ConstraintDescription" : "can contain only ASCII characters."
+    },
+    "InstanceType" : {
+      "Description" : "Chef 12 Server EC2 instance type",
+      "Type" : "String",
+      "Default" : "m3.large",
+      "AllowedValues" : [ "t2.micro","t2.medium","m3.medium","m3.large","m3.xlarge","m3.2xlarge"],
+      "ConstraintDescription" : "must be a valid EC2 instance type."
+    },
+    "ChefServerRole" : {
+      "Description" : "Pre-create a Role - it needs at least S3 put/get",
+      "Type" : "String"
+    },
+    "SourceLocation" : {
+      "Description" : "Source IP address range allowed SSH/Web to the Chef Server",
+      "Type": "String",
+      "MinLength": "9",
+      "MaxLength": "18",
+      "Default": "0.0.0.0/0",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "must be a valid IP CIDR range of the form x.x.x.x/x."
+   }
+  },
+
+  "Mappings" : {
+    "AWSRegion2AMI" : {
+      "us-east-1" :      { "id" : "ami-00a11e68" }
+    }
+  },
+
+  "Resources" : {
+
+    "ChefServer": {
+      "Type": "AWS::EC2::Instance",
+      "Metadata" : {
+        "AWS::CloudFormation::Init" : {
+            "config" : {
+                 "files" : {
+                    "/root/.aws/config" : {
+                     "content" : { "Fn::Join" : ["", [
+                     "[default]\n",
+                     "region = us-east-1\n"
+                    ]]},
+                    "mode"   : "000600",
+                    "owner"  : "root",
+                    "group"  : "root"
+                    }
+                }
+            }
+         }
+      },
+      "Properties": {
+        "SecurityGroups": [ { "Ref": "ChefServerSecurityGroup" } ],
+        "IamInstanceProfile"  : { "Ref" : "ChefServerRole" },
+        "ImageId": { "Fn::FindInMap": [ "AWSRegion2AMI", { "Ref": "AWS::Region" }, "id" ] },
+        "UserData" : { "Fn::Base64" : { "Fn::Join" : ["", [
+            "#!/bin/bash\n",
+	    "export PATH=$PATH:/usr/local/bin:/opt/aws/bin\n",
+
+            "function error_exit\n",
+            "{\n",
+            "  cfn-signal -e 1 -r \"$1\" '", { "Ref" : "ChefServerWaitHandle" }, "'\n",
+            "  exit 1\n",
+            "}\n",
+
+            "curl https://bootstrap.pypa.io/ez_setup.py -o - | python\n",
+            "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
+            "cfn-init --region ", { "Ref" : "AWS::Region" },
+            "    -s ", { "Ref" : "AWS::StackId" }, " -r ChefServer ", "|| error_exit 'Failed to run cfn-init'\n",
+
+            "# Bootstrap chef\n",
+            "cd /home/ec2-user \n",
+            "wget https://s3.amazonaws.com/awshat-chefcon2015/install-chef-aws.sh >> /tmp/install-chef-aws.log 2>&1 \n",
+            "chmod +x /home/ec2-user/install-chef-aws.sh \n",
+            "/home/ec2-user/install-chef-aws.sh >> /tmp/install-chef-aws.log 2>&1 \n",
+
+            "# Setup awscli on redhat\n",
+            "curl https://bootstrap.pypa.io/get-pip.py -o - | python\n",
+            "pip install awscli\n",
+
+            "# use awscli to copy validation key to S3 bucket\n",            
+            "/usr/bin/aws s3 cp /home/ec2-user/.chef/chef-validator.pem s3://", {"Ref" : "ChefKeyBucket" } ,"/chef-validator.pem\n",
+
+            "# If all went well, signal success\n",
+            "cfn-signal -e $? -r 'Chef Server configuration' '", { "Ref" : "ChefServerWaitHandle" }, "'\n"
+        ]]}},
+        "KeyName": { "Ref": "KeyName" },
+        "InstanceType": { "Ref": "InstanceType" }
+      }
+    },
+
+    "ChefServerSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Open up SSH/Web access to Chef Server from allowed Group and Source IP range",
+        "SecurityGroupIngress" : [
+          { "IpProtocol": "tcp", "FromPort": "22",   "ToPort": "22",   "CidrIp": { "Ref" : "SourceLocation"} },
+          { "IpProtocol": "tcp", "FromPort": "443", "ToPort": "443", "SourceSecurityGroupName": { "Ref" :"ChefClientSecurityGroup" }},
+          { "IpProtocol": "tcp", "FromPort": "443", "ToPort": "443", "CidrIp": { "Ref" : "SourceLocation"} }
+        ]
+      }
+    },
+
+    "ChefClientSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Group with client access to Chef Server",
+         "SecurityGroupIngress" : [
+            { "IpProtocol": "tcp", "FromPort": "22",   "ToPort": "22",   "CidrIp": { "Ref" : "SourceLocation"} },
+            { "IpProtocol": "tcp", "FromPort": "80", "ToPort": "80", "CidrIp": { "Ref" : "SourceLocation"} }
+         ]
+      }
+    },
+
+    "ChefKeyBucket" : {
+      "Type" : "AWS::S3::Bucket",
+      "Properties" : {
+        "AccessControl" : "Private"
+      },
+      "DeletionPolicy" : "Delete"
+    },
+
+    "ChefServerWaitHandle" : {
+      "Type" : "AWS::CloudFormation::WaitConditionHandle"
+    },
+
+    "ChefServerWaitCondition" : {
+      "Type" : "AWS::CloudFormation::WaitCondition",
+      "DependsOn" : "ChefServer",
+      "Properties" : {
+        "Handle"  : { "Ref" : "ChefServerWaitHandle" },
+        "Timeout" : "7200"
+      }
+    }
+ },
+ "Outputs" : {
+     "ServerURL" : {
+       "Description" : "URL of newly created Chef 12 server - login and change password",
+       "Value" : { "Fn::Join" : ["", ["https://", {"Fn::GetAtt" : [ "ChefServer", "PublicDnsName" ]}, ":443/organizations/chef"]]}
+     },
+     "ChefKeyBucket" : {
+       "Description" : "Private S3 bucket with validation key for client bootstrap automation:",
+       "Value" : {"Ref" : "ChefKeyBucket" }
+     },
+     "ChefSecurityGroup" : {
+       "Description" : "EC2 Security Group for access to Chef 12 Server",
+       "Value" : { "Ref" :"ChefClientSecurityGroup" }
+     }
+ }
+  
+}

@@ -1,0 +1,71 @@
+{
+
+"AWSTemplateFormatVersion": "2010-09-09",
+
+"Description": "Sample template to bring up a amazon linux ec2 instance and bootstrap a client node to be managed by an existing Chef Server. **WARNING** This template creates an Amazon EC2 instance. You will be billed for the AWS resources used if you create a stack from this template.",
+
+"Parameters": {
+  "KeyName": {
+   "Type": "String",
+   "Description" : "EC2 KeyPair to enable SSH access to the client instance"
+  },
+  "InstanceType": {
+   "Default": "m3.medium",
+   "Description" : "Type of EC2 instance for the client node",
+   "Type": "String",
+   "AllowedValues" : [ "t2.micro", "t2.medium", "m3.small", "m3.medium", "m3.large", "m3.xlarge", "m3.2xlarge"], 
+   "ConstraintDescription" : "must contain only alphanumeric characters."
+  },
+  "ServerURL" : {
+   "Description" : "Chef 12 Server URL",
+   "Type": "String"
+  },
+  "ChefSecurityGroup" : {
+   "Description" : "Security group for clients to get access to Chef Server",
+   "Type": "String"
+  },
+  "S3Role" : {
+        "Description" : "IAM S3 Role with Get access for chef client bootstrapping automation",
+        "Type" : "String"
+  },
+  "ChefKeyBucket" : {
+   "Description" : "S3 bucket with validation key",
+   "Type": "String"
+  },
+  "ChefClientEnv" : {
+   "Description" : "Environment setting for deployed instances",
+   "Type": "String",
+   "Default" : "_default"
+  }
+},
+
+"Mappings" : {
+   "AWSRegion2AMI" : {
+      "us-east-1" :      { "id" : "ami-00a11e68" }
+   }
+},
+
+"Resources" : {
+
+"ChefClient": {
+  "Type": "AWS::EC2::Instance",
+  "Properties": {
+   "SecurityGroups": [ { "Ref": "ChefSecurityGroup" } ],
+   "IamInstanceProfile"  : { "Ref" : "S3Role" },
+   "ImageId": { "Fn::FindInMap": [ "AWSRegion2AMI", { "Ref": "AWS::Region" }, "id" ] },
+        "UserData" : { "Fn::Base64" : { "Fn::Join" : ["", [
+            "#!/bin/bash\n",
+
+            "# Bootstrap chef client\n",
+            "cd /home/ec2-user \n",
+            "wget https://s3.amazonaws.com/awshat-chefcon2015/install-chef-client.sh >> /tmp/install-chef-amzn.log 2>&1 \n",
+            "chmod +x /home/ec2-user/install-chef-client.sh \n",
+            "/home/ec2-user/install-chef-client.sh ", {"Ref" : "ChefKeyBucket" } ," ", {"Ref" : "ServerURL" } ," ", {"Ref" : "ChefClientEnv" } ," >> /tmp/install-chef-amzn.log 2>&1 \n"
+        ]]}},
+   "KeyName": { "Ref": "KeyName" },
+   "InstanceType": { "Ref": "InstanceType" }
+  }
+
+  }
+ }
+}

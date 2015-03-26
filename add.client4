@@ -1,0 +1,8 @@
+aws cloudformation create-stack --stack-name $1 --template-body file://./client.cfn --disable-rollback --capabilities CAPABILITY_IAM --parameters  \
+ParameterKey=KeyName,ParameterValue=awshat_key01 \
+ParameterKey=InstanceType,ParameterValue=m3.large \
+ParameterKey=ServerURL,ParameterValue=https://ec2-52-4-31-174.compute-1.amazonaws.com:443/organizations/chef \
+ParameterKey=ChefKeyBucket,ParameterValue=chef12-server4-chefkeybucket-oe4e81j7zb6s \
+ParameterKey=ChefSecurityGroup,ParameterValue=chef12-server4-ChefClientSecurityGroup-77WQFOHOGCE5 \
+ParameterKey=S3Role,ParameterValue=s3access 
+

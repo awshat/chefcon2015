@@ -20,8 +20,8 @@ aws s3 cp s3://$1/chef-validator.pem /etc/chef/validation.pem
 sed -i 's/^.*requiretty/#Defaults requiretty/' /etc/sudoers
 
 # install chef-client via mirrored version locked rpm
-aws s3 cp s3://awshat-chefcon2015/chef-12.0.0-1.x86_64.rpm /tmp/chef-12.0.0-1.x86_64.rpm
-rpm -ivh /tmp/chef-12.0.0-1.x86_64.rpm
+wget https://s3.amazonaws.com/awshat-chefcon2015/chef-12.0.0-1.x86_64.rpm
+rpm -ivh chef-12.0.0-1.x86_64.rpm
 #   or
 # install latest chef-client via web
 # curl -L https://www.opscode.com/chef/install.sh | sudo bash

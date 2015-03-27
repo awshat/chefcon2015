@@ -1,4 +1,4 @@
-aws cloudformation create-stack --stack-name chef12-server4 --template-body file://./server.cfn --disable-rollback --capabilities CAPABILITY_IAM --parameters  \
+aws cloudformation create-stack --stack-name chef12-server5 --template-body file://./server.cfn --disable-rollback --parameters  \
 ParameterKey=InstanceType,ParameterValue=m3.2xlarge \
 ParameterKey=KeyName,ParameterValue=awshat_key01 \
 ParameterKey=ChefServerRole,ParameterValue=devops \

@@ -1,8 +1,13 @@
+# simple exmple of wrapper for aws cli command for calling cloudformation stack to create chef clients
+# * first add a chef server
+# * view the outputs from server stack and paste below for url,bucket,and security group
+# * pre-create a role for s3access to be able to read the chef validation key stored in private key bucket
+
 aws cloudformation create-stack --stack-name $1 --template-body file://./client.cfn --disable-rollback --capabilities CAPABILITY_IAM --parameters  \
 ParameterKey=KeyName,ParameterValue=awshat_key01 \
 ParameterKey=InstanceType,ParameterValue=m3.large \
-ParameterKey=ServerURL,ParameterValue=https://ec2-52-4-0-195.compute-1.amazonaws.com:443/organizations/chef \
-ParameterKey=ChefKeyBucket,ParameterValue=chef12-server-chefkeybucket-1li5qkhafwx2m \
-ParameterKey=ChefSecurityGroup,ParameterValue=chef12-server-ChefClientSecurityGroup-1WIPJX7SBE827 \
+ParameterKey=ServerURL,ParameterValue= \
+ParameterKey=ChefKeyBucket,ParameterValue= \
+ParameterKey=ChefSecurityGroup,ParameterValue= \
 ParameterKey=S3Role,ParameterValue=s3access 
 

@@ -1,4 +1,12 @@
-aws cloudformation create-stack --stack-name chef12-server5 --template-body file://./server.cfn --disable-rollback --parameters  \
-ParameterKey=InstanceType,ParameterValue=m3.2xlarge \
-ParameterKey=KeyName,ParameterValue=awshat_key01 \
+# simple exmple of wrapper for aws cli command for calling cloudformation stack to create chef servers
+# * precreate a role for the chef server with at least S3 access (i.e. "devops") to create S3 buckets/put objects
+# * update the role parameter below with the role created in your environment 
+# * add your ssh key parameter below for ssh access to the server
+# * next add a chef server "./add.server <name-of-chef-server-to-create>"
+# * view the outputs from server stack and login to server URL and change the password!
+
+aws cloudformation create-stack --stack-name $1 --template-body file://./server.cfn --disable-rollback --parameters  \
+ParameterKey=InstanceType,ParameterValue=m3.large \
+ParameterKey=KeyName,ParameterValue= \
 ParameterKey=ChefServerRole,ParameterValue=devops \
+

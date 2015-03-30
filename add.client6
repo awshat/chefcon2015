@@ -1,0 +1,8 @@
+aws cloudformation create-stack --stack-name $1 --template-body file://./client.cfn --disable-rollback --parameters  \
+ParameterKey=KeyName,ParameterValue=awshat_key01 \
+ParameterKey=InstanceType,ParameterValue=m3.medium \
+ParameterKey=ServerURL,ParameterValue= \
+ParameterKey=ChefKeyBucket,ParameterValue= \
+ParameterKey=ChefSecurityGroup,ParameterValue= \
+ParameterKey=S3Role,ParameterValue=s3access 
+

@@ -1,3 +1,7 @@
+# do not use
+# this was from the presentation prep work
+# here only as an example of what I used
+
 aws cloudformation create-stack --stack-name $1 --template-body file://./client.cfn --disable-rollback --parameters  \
 ParameterKey=KeyName,ParameterValue=awshat_key01 \
 ParameterKey=InstanceType,ParameterValue=m3.medium \

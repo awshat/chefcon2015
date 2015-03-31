@@ -7,6 +7,6 @@
 
 aws cloudformation create-stack --stack-name $1 --template-body file://./server.cfn --disable-rollback --parameters  \
 ParameterKey=InstanceType,ParameterValue=m3.large \
-ParameterKey=KeyName,ParameterValue= \
+ParameterKey=KeyName,ParameterValue=awshat_key01 \
 ParameterKey=ChefServerRole,ParameterValue=devops \
 

@@ -2,7 +2,7 @@
 
 "AWSTemplateFormatVersion": "2010-09-09",
 
-"Description": "Sample template to bring up a amazon linux ec2 instance and bootstrap a client node to be managed by an existing Chef Server. **WARNING** This template creates an Amazon EC2 instance. You will be billed for the AWS resources used if you create a stack from this template.",
+"Description": "Sample template to bring up an ec2 instance and bootstrap a client node to be managed by an existing Chef Server. **WARNING** This template creates an Amazon EC2 instance. You will be billed for the AWS resources used if you create a stack from this template.",
 
 "Parameters": {
   "KeyName": {
